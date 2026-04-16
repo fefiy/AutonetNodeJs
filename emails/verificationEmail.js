@@ -9,7 +9,7 @@ export const sendVerificationEmail = async (
   verificationToken,
 ) => {
   // Include both user ID and token in the verification URL
-  const verificationUrl = `${process.env.APP_URL}/verify-email/${userId}/${verificationToken}`;
+  const verificationUrl = `${process.env.APP_URL}/verify-email?userId=${userId}&token=${verificationToken}`;
 
   const content = `
         <h2>Welcome ${firstName || "User"}!</h2>
