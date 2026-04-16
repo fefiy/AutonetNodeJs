@@ -6,6 +6,7 @@ import session from "express-session";
 import passport from "passport";
 import { server, app } from "./socket.js";
 import authRoute from "./routes/authRoutes.js";
+<<<<<<< HEAD
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -67,6 +68,19 @@ app.use(
     },
   }),
 );
+=======
+import companyRoute from "./routes/companyRoute.js"
+import categoryRoute from "./routes/categoryRoute.js"
+import carBrandRoute from "./routes/carBrandRoute.js"
+import itemBrandRoute from "./routes/itemBrandRoute.js"
+
+app.use("/api/auth", authRoute);
+app.use("/api/companies",companyRoute)
+app.use("/api/categories",categoryRoute)
+app.use("/api/car_brands",carBrandRoute)
+app.use("/api/item_brands", itemBrandRoute)
+
+>>>>>>> 3387124aa3e198ab33a01170f533f14f6337e648
 
 // Initialize Passport (THIS IS CRITICAL)
 initializePassport(); // Make sure this is called BEFORE using passport
