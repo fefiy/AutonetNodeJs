@@ -257,7 +257,7 @@ export const verifyEmail = async (req, res) => {
     });
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("erify error:", error);
+    console.error("verify error:", error);
   } finally {
     client.release();
   }
