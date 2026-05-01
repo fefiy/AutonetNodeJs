@@ -11,6 +11,7 @@ const router = Router();
 
 router.post("/create",addCarBrand)
 router.get("/",getAllCarBrands)
+router.put("/update/:id", updateCarBrand);
 
 
 export default router;
