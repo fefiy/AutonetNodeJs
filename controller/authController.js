@@ -412,7 +412,7 @@ export const getCurrentUser = async (req, res) => {
 
 export const resendVerificationEmail = async (req, res) => {
   const { email } = req.body;
-  console.log("resend erification email", email);
+  console.log("resend verification email", email);
   if (!email) {
     return res.status(400).json({ error: "Email is required" });
   }

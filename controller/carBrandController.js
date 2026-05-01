@@ -3,6 +3,7 @@ import pool from "../config/db.js";
 
 const addCarBrand = async (req, res) => {
     const { name, description, image_url } = req.body;
+    console.log("This is adding car brand", req.body)
 
     if (!name || name.trim() === '') {
         return res.status(400).json({ error: 'Brand name is required.' });
