@@ -88,10 +88,12 @@ const deleteItemBrand = async (req, res) => {
     }
 };
 const getAllItemBrands = async (req, res) => {
+    console.log("get item brands is called")
     try {
         const query = 'SELECT * FROM item_brands ORDER BY created_at DESC;';
         const result = await pool.query(query);
-        res.status(200).json({ brands: result.rows });
+        console.log("result from getting the item brands", result.rows)
+        res.status(200).json({ data:result.rows} );
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Database error while fetching item brands.' });

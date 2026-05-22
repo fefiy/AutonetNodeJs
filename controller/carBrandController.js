@@ -19,10 +19,10 @@ const addCarBrand = async (req, res) => {
         const values = [name.trim(), description || null, image_url || null];
         const result = await pool.query(query, values);
 
-        res.status(201).json({
-            message: 'Car brand added successfully.',
-            brand: result.rows[0]
-        });
+        res.status(201).json(
+           
+            result.rows[0]
+        )
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Database error while adding car brand.' });
