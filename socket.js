@@ -19,7 +19,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.APP_URL,
+    origin: [process.env.APP_URL, process.env.APP_URL_TWO],
     allowedHeaders: ["my-custom-header"],
     credentials: true,
   },

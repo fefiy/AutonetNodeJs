@@ -12,6 +12,12 @@ import companyRoute from "./routes/companyRoute.js";
 import categoryRoute from "./routes/categoryRoute.js";
 import carBrandRoute from "./routes/carBrandRoute.js";
 import itemBrandRoute from "./routes/itemBrandRoute.js";
+import productRoute from "./routes/productRoute.js";
+import cartRoute from "./routes/cartRoute.js";
+import carModelRoute from "./routes/carModelRoutes.js";
+import engineTypeRoutes from "./routes/engineTypeRoutes.js";
+import featuredProductsRoute from "./routes/featuredProductsRoutes.js";
+
 const s3Client = new S3Client({
   region: "auto",
   endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
@@ -63,6 +69,11 @@ app.use("/api/companies", companyRoute);
 app.use("/api/categories", categoryRoute);
 app.use("/api/car_brands", carBrandRoute);
 app.use("/api/item_brands", itemBrandRoute);
+app.use("/api/product", productRoute);
+app.use("/api/cart", cartRoute);
+app.use("/api/car-model", carModelRoute);
+app.use("/api/engine-types", engineTypeRoutes);
+app.use("/api/featured-products", featuredProductsRoute);
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "your_session_secret",
