@@ -9,18 +9,23 @@ const sortableColumns = {
   modelYear: "p.model_year",
 };
 
+
+
+function parseArrayParam(param) {
+  if (!param) return [];
+  if (Array.isArray(param)) return param;
+  if (typeof param === "string") return param.split(",").map(s => s.trim()).filter(Boolean);
+  return [];
+}
+
 export const getProducts = async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
-    const pageSize = Math.min(
-      100,
-      Math.max(1, parseInt(req.query.pageSize) || 20),
-    );
+    const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize) || 20));
     const offset = (page - 1) * pageSize;
 
     const sortBy = req.query.sortBy || "createdAt";
-    const sortOrder =
-      (req.query.sortOrder || "").toLowerCase() === "asc" ? "ASC" : "DESC";
+    const sortOrder = (req.query.sortOrder || "").toLowerCase() === "asc" ? "ASC" : "DESC";
     const orderColumn = sortableColumns[sortBy] || "p.created_at";
 
     const filters = { sql: "", values: [] };
@@ -31,19 +36,28 @@ export const getProducts = async (req, res) => {
       filters.values.push(value);
     }
 
+    function addInFilter(column, valuesArray) {
+      if (!valuesArray.length) return;
+      const placeholders = valuesArray.map(() => `$${valueCounter++}`).join(",");
+      filters.sql += (filters.sql ? " AND " : " WHERE ") + `${column} IN (${placeholders})`;
+      filters.values.push(...valuesArray);
+    }
+
+    // Car model (single)
     if (req.query.car_model_id) {
       addFilter(`p.car_model_id = $${valueCounter++}`, req.query.car_model_id);
     }
 
-    if (req.query.category_id) {
-      addFilter(`p.category_id = $${valueCounter++}`, req.query.category_id);
+    // Categories (array)
+    const categoryIds = parseArrayParam(req.query.category_ids);
+    if (categoryIds.length) {
+      addInFilter("p.category_id", categoryIds);
     }
 
-    if (req.query.item_brand_id) {
-      addFilter(
-        `p.items_brand_id = $${valueCounter++}`,
-        req.query.item_brand_id,
-      );
+    // Item brands (array)
+    const itemBrandIds = parseArrayParam(req.query.item_brand_ids);
+    if (itemBrandIds.length) {
+      addInFilter("p.items_brand_id", itemBrandIds);
     }
 
     if (req.query.item_brand_name) {
@@ -51,63 +65,52 @@ export const getProducts = async (req, res) => {
       addFilter(`ib.name ILIKE $${valueCounter++}`, brandName);
     }
 
-    // model_year
     if (req.query.model_year) {
       addFilter(`p.model_year = $${valueCounter++}`, req.query.model_year);
     }
 
-    // engine_type_id
     if (req.query.engine_type_id) {
-      addFilter(
-        `p.engine_type_id = $${valueCounter++}`,
-        req.query.engine_type_id,
-      );
+      addFilter(`p.engine_type_id = $${valueCounter++}`, req.query.engine_type_id);
     }
 
-    // car_brand_id
     if (req.query.car_brand_id) {
       addFilter(`p.car_brand_id = $${valueCounter++}`, req.query.car_brand_id);
     }
 
-    // part_number (partial match)
+    // ----- Part number (case‑insensitive, partial match) -----
     if (req.query.part_number) {
-      const partNo = `%${req.query.part_number}%`;
-      addFilter(`p.part_number ILIKE $${valueCounter++}`, partNo);
+      // Convert search term to lowercase and use LOWER() on column
+      const partNo = `%${req.query.part_number.toLowerCase()}%`;
+      addFilter(`LOWER(p.part_number) LIKE $${valueCounter++}`, partNo);
     }
 
-    // oem_number (partial match)
+    // ----- OEM number (case‑insensitive, partial match) -----
     if (req.query.oem_number) {
-      const oem = `%${req.query.oem_number}%`;
-      addFilter(`p.oem_number ILIKE $${valueCounter++}`, oem);
+      const oem = `%${req.query.oem_number.toLowerCase()}%`;
+      addFilter(`LOWER(p.oem_number) LIKE $${valueCounter++}`, oem);
     }
 
-    // side (exact: 'left', 'right', or 'none')
-    if (req.query.side) {
-      const side = req.query.side.toLowerCase();
-      if (["left", "right", "none"].includes(side)) {
-        addFilter(`p.side = $${valueCounter++}`, side);
-      } else {
-        return res
-          .status(400)
-          .json({ error: "Invalid side value. Must be left, right, or none" });
+    // Side (array)
+    const sides = parseArrayParam(req.query.sides);
+    if (sides.length) {
+      const validSides = sides.filter(s => ["left", "right", "none"].includes(s.toLowerCase()));
+      if (validSides.length !== sides.length) {
+        return res.status(400).json({ error: "Invalid side value. Must be left, right, or none" });
       }
+      addInFilter("p.side", validSides.map(s => s.toLowerCase()));
     }
 
-    // price range (minPrice, maxPrice)
+    // Price range
     if (req.query.minPrice) {
       const min = parseFloat(req.query.minPrice);
-      if (!isNaN(min)) {
-        addFilter(`p.price >= $${valueCounter++}`, min);
-      }
+      if (!isNaN(min)) addFilter(`p.price >= $${valueCounter++}`, min);
     }
     if (req.query.maxPrice) {
       const max = parseFloat(req.query.maxPrice);
-      if (!isNaN(max)) {
-        addFilter(`p.price <= $${valueCounter++}`, max);
-      }
+      if (!isNaN(max)) addFilter(`p.price <= $${valueCounter++}`, max);
     }
 
-    // ----- Build main query with joins -----
+    // Main query
     const selectQuery = `
       SELECT
         p.id,
@@ -144,18 +147,17 @@ export const getProducts = async (req, res) => {
       LIMIT $${valueCounter++} OFFSET $${valueCounter++}
     `;
 
-    // Count query for total records (with same filters)
     const countQuery = `
       SELECT COUNT(*) AS total
       FROM products p
       LEFT JOIN item_brands ib ON p.items_brand_id = ib.id
+      LEFT JOIN categories cat ON p.category_id = cat.id
       ${filters.sql}
     `;
 
     const queryValues = [...filters.values, pageSize, offset];
     const countValues = [...filters.values];
 
-    // Execute both queries in parallel
     const [dataResult, countResult] = await Promise.all([
       pool.query(selectQuery, queryValues),
       pool.query(countQuery, countValues),
@@ -164,7 +166,6 @@ export const getProducts = async (req, res) => {
     const total = parseInt(countResult.rows[0].total, 10);
     const totalPages = Math.ceil(total / pageSize);
 
-    // Map rows to the expected object shape
     const products = dataResult.rows.map((row) => ({
       id: row.id,
       part_number: row.part_number,
@@ -200,6 +201,8 @@ export const getProducts = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+// createProduct and getAllProduct remain unchanged
 
 export const createProduct = async (req, res) => {
   console.log("Adding Product");
