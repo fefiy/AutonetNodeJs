@@ -9,23 +9,30 @@ const sortableColumns = {
   modelYear: "p.model_year",
 };
 
-
-
 function parseArrayParam(param) {
   if (!param) return [];
   if (Array.isArray(param)) return param;
-  if (typeof param === "string") return param.split(",").map(s => s.trim()).filter(Boolean);
+  if (typeof param === "string")
+    return param
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
   return [];
 }
 
 export const getProducts = async (req, res) => {
   try {
+    console.log("get all products by pagination");
     const page = Math.max(1, parseInt(req.query.page) || 1);
-    const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize) || 20));
+    const pageSize = Math.min(
+      100,
+      Math.max(1, parseInt(req.query.pageSize) || 20),
+    );
     const offset = (page - 1) * pageSize;
 
     const sortBy = req.query.sortBy || "createdAt";
-    const sortOrder = (req.query.sortOrder || "").toLowerCase() === "asc" ? "ASC" : "DESC";
+    const sortOrder =
+      (req.query.sortOrder || "").toLowerCase() === "asc" ? "ASC" : "DESC";
     const orderColumn = sortableColumns[sortBy] || "p.created_at";
 
     const filters = { sql: "", values: [] };
@@ -38,8 +45,11 @@ export const getProducts = async (req, res) => {
 
     function addInFilter(column, valuesArray) {
       if (!valuesArray.length) return;
-      const placeholders = valuesArray.map(() => `$${valueCounter++}`).join(",");
-      filters.sql += (filters.sql ? " AND " : " WHERE ") + `${column} IN (${placeholders})`;
+      const placeholders = valuesArray
+        .map(() => `$${valueCounter++}`)
+        .join(",");
+      filters.sql +=
+        (filters.sql ? " AND " : " WHERE ") + `${column} IN (${placeholders})`;
       filters.values.push(...valuesArray);
     }
 
@@ -70,7 +80,10 @@ export const getProducts = async (req, res) => {
     }
 
     if (req.query.engine_type_id) {
-      addFilter(`p.engine_type_id = $${valueCounter++}`, req.query.engine_type_id);
+      addFilter(
+        `p.engine_type_id = $${valueCounter++}`,
+        req.query.engine_type_id,
+      );
     }
 
     if (req.query.car_brand_id) {
@@ -93,11 +106,18 @@ export const getProducts = async (req, res) => {
     // Side (array)
     const sides = parseArrayParam(req.query.sides);
     if (sides.length) {
-      const validSides = sides.filter(s => ["left", "right", "none"].includes(s.toLowerCase()));
+      const validSides = sides.filter((s) =>
+        ["left", "right", "none"].includes(s.toLowerCase()),
+      );
       if (validSides.length !== sides.length) {
-        return res.status(400).json({ error: "Invalid side value. Must be left, right, or none" });
+        return res
+          .status(400)
+          .json({ error: "Invalid side value. Must be left, right, or none" });
       }
-      addInFilter("p.side", validSides.map(s => s.toLowerCase()));
+      addInFilter(
+        "p.side",
+        validSides.map((s) => s.toLowerCase()),
+      );
     }
 
     // Price range
